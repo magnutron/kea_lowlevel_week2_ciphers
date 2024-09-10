@@ -1,5 +1,6 @@
 {
   "files.associations": {
-    "cipher.c": "cpp"
+    "cipher.c": "cpp",
+    "cipher.h": "c"
   }
 }
