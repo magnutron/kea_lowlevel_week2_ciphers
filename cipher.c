@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include "cipher.h"
+#include <malloc.h>
 
-char alphabet[59];
+char alphabet[52];
 
 int letterToNumber(char letter) {
     for (int i = 0; i < 58; i++) {
@@ -13,67 +14,125 @@ int letterToNumber(char letter) {
     return -1;  // Return -1 if the letter is not found
 }
 
-void textToNumbers(const char* text) {
-    while (*text) {               // Iterate through each character in the string
-        printf("Character: '%c' ASCII value: %d\n", *text, (int)(*text));
-        text++;                   // Move to the next character
+char numberToLetter(int number) {
+    if (number >= 0 && number <= 52) {
+        return (char)alphabet[number];
     }
+    return ' ';
 }
 
-int shift(int number, int shiftvalue) {
-    // Check if the number is within the printable ASCII range
-    if (number >= 32 && number <= 126) {
-        return (number - 32 + shiftvalue) % 95 + 32;
+int countLength(char *text) {
+    int length = 0;
+    
+    // Iterate through the array until the null terminator is encountered
+    while (text[length] != '\0') {
+        length++;
     }
-    return number;  // Return as-is if not in printable ASCII range
+
+    return length;
 }
 
 void encrypt(char* text, int shiftValue) {
-    while (*text) {
-        *text = (char) shift((int) *text, shiftValue);
-        text++;
+    int textLength = countLength(text);
+
+    // Allocate memory for storing index and encrypted text
+    int* encryptedTextIndex = (int*)malloc(textLength * sizeof(int));  // Array of indexes
+    char* encryptedText = (char*)malloc((textLength + 1) * sizeof(char));  // Encrypted text
+
+    if (encryptedTextIndex == NULL || encryptedText == NULL) {
+        printf("Memory allocation failed!\n");
+        return;
     }
+
+    // Convert each letter to its number, apply shift, and store in encryptedTextIndex
+    for (int i = 0; i < textLength; i++) {
+        int letterIndex = letterToNumber(text[i]);
+        if (letterIndex != -1) {
+            encryptedTextIndex[i] = shift(letterIndex, shiftValue);  // Shift the index
+        } else {
+            encryptedTextIndex[i] = -1;  // Keep non-alphabet characters as -1
+        }
+    }
+
+    // Convert the shifted numbers back to letters
+    for (int i = 0; i < textLength; i++) {
+        if (encryptedTextIndex[i] != -1) {
+            encryptedText[i] = numberToLetter(encryptedTextIndex[i]);  // Convert back to letter
+        } else {
+            encryptedText[i] = text[i];  // Keep non-alphabet characters unchanged
+        }
+    }
+    
+    encryptedText[textLength] = '\0';  // Null-terminate the string
+
+    printf("Encrypted text: %s\n", encryptedText);
+
+    // Free allocated memory
+    free(encryptedTextIndex);
+    free(encryptedText);
 }
 
-void decrypt(char* text, int shiftValue) {
-    // To decrypt, we shift by the negative of the encryption shift value
-    while (*text) {
-        *text = (char) shift((int) *text, -shiftValue);
-        text++;
+void decrypt(char* text, int shiftValue) 
+{
+    int textLength = countLength(text);
+
+    // Allocate memory for storing index and decrypted text
+    int* decryptedTextIndex = (int*)malloc(textLength * sizeof(int));  // Array of indexes
+    char* decryptedText = (char*)malloc((textLength + 1) * sizeof(char));  // Decrypted text
+
+    if (decryptedTextIndex == NULL || decryptedText == NULL) {
+        printf("Memory allocation failed!\n");
+        return;
     }
+
+    // Convert each letter to its number, apply shift, and store in decryptedTextIndex
+    for (int i = 0; i < textLength; i++) {
+        int letterIndex = letterToNumber(text[i]);
+        if (letterIndex != -1) {
+            decryptedTextIndex[i] = shift(letterIndex, -shiftValue);  // Shift the index
+        } else {
+            decryptedTextIndex[i] = -1;  // Keep non-alphabet characters as -1
+        }
+    }
+
+    // Convert the shifted numbers back to letters
+    for (int i = 0; i < textLength; i++) {
+        if (decryptedTextIndex[i] != -1) {
+            decryptedText[i] = numberToLetter(decryptedTextIndex[i]);  // Convert back to letter
+        } else {
+            decryptedText[i] = text[i];  // Keep non-alphabet characters unchanged
+        }
+    }
+    
+    decryptedText[textLength] = '\0';  // Null-terminate the string
+
+    printf("Decrypted text: %s\n", decryptedText);
+
+    // Free allocated memory
+    free(decryptedTextIndex);
+    free(decryptedText);
+}
+
+
+int shift(int number, int shiftValue) {
+    if (number >= 0 && number < 52) {
+        return (number + shiftValue) % 52;  // Wrap around the alphabet with modulo
+    }
+    return number;  // Return as-is if it's not part of the alphabet
 }
 
 void init(char alphabet[]) {
     for (int i = 0; i < 26; i++) {
-        alphabet[i] = 'a' + i;  // Assigning 'a' + i to fill alphabet from 'a' to 'z'
+        alphabet[i] = 'a' + i;
     }
 
-    alphabet[26] = (char)195;  // First byte for UTF-8 encoding of first byte for æøå
-    alphabet[27] = (char)166;  // Second byte for UTF-8 encoding of 'æ'
-    alphabet[28] = (char)184;  // Second byte for UTF-8 encoding of 'ø'
-    alphabet[29] = (char)165;  // Second byte for UTF-8 encoding of 'å'
-
-    for (int i = 30; i < 56; i++) {
-        alphabet[i] = i + 'a' - 62;  // Assigning 'ä' + i to fill alphabet from 'A' to 'Z'
+    for (int i = 26; i < 52; i++) {
+        alphabet[i] = '&' + i + 1;
     }
-
-    alphabet[56] = (char)134;  // Second byte for UTF-8 encoding of 'Æ'
-    alphabet[57] = (char)152;  // Second byte for UTF-8 encoding of 'Ø'
-    alphabet[58] = (char)133;  // Second byte for UTF-8 encoding of 'Å'
 
     // Print the lower case alphabet
-    for (int i = 0; i < 26; i++) {
+    for (int i = 0; i < 52; i++) {
         printf("%c", alphabet[i]);
     }
-    printf("%c%c", alphabet[26], alphabet[27]);
-    printf("%c%c", alphabet[26], alphabet[28]);
-    printf("%c%c", alphabet[26], alphabet[29]);
-
-    // Print the upper case alphabet
-    for (int i = 30; i < 56; i++) {
-        printf("%c", alphabet[i]);
-    }
-     printf("%c%c", alphabet[26], alphabet[56]);
-    printf("%c%c", alphabet[26], alphabet[57]);
-    printf("%c%c\n", alphabet[26], alphabet[58]);
+    printf("\n");
 }
